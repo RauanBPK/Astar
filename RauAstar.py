@@ -506,7 +506,6 @@ class Game:
                         self.update_info()
                         print(f"Diagonals updated to: {self.diagonals}")
                     if event.key == pygame.K_i:
-                        print("I")
                         if self.game_grid:
                             # injects a function (like a callback?) with the parameters already set
                             # just so the drawing is done in one place only. If I draw it here the info would

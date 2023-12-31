@@ -26,6 +26,7 @@ import pygame
 from typing import List
 from utils import Colors
 from enum import Enum, auto
+from functools import partial
 
 
 class NodeType(Enum):
@@ -204,6 +205,7 @@ class GameGrid:
         self.window_size = window_size
         self.window = window
         self.cell_width = window_size // self.rows
+        self.draw_info = None
 
     def get_clicked_cell(self, click_position):
         y, x = click_position
@@ -252,12 +254,18 @@ class GameGrid:
                     else:
                         self.cell_grid[i][j].reset(keep_type=True)
 
+    def set_draw_info(self, func, **params):
+        # partial is fun. Sorry to whoever is reading this (unless you are me, then I am not so sorry)
+        self.draw_info = partial(func, **params) if func else None
+
     def draw(self):
         self.window.fill(Colors.WHITE)
         for row in self.cell_grid:
             for cell in row:
                 cell.draw_cell(self.window)
         self.draw_grid_lines()
+        if self.draw_info:
+            self.draw_info()
         pygame.display.update()
 
 
@@ -326,8 +334,9 @@ class AstarAlgorithm:
             current_node: Node = self.open_set.pop()[2]
 
             if current_node == self.end:
+                done = time.time()
                 self.reconstruct_path(current_node)
-                return True
+                return done
 
             for neighbor in current_node.neighbors:
                 temp_g_score = current_node.g + self.grid.cost_to_neighbor()
@@ -350,7 +359,8 @@ class AstarAlgorithm:
             if current_node != self.start:
                 current_node.change_type(NodeType.CLOSED)
 
-        return False
+        done = time.time()
+        return done
 
 
 class AstarVisualization:
@@ -386,7 +396,7 @@ class AstarVisualization:
     def run(self):
         self.astar.draw_callback = self.visualize_step
         self.astar.check_event_callback = self.check_event_callback
-        self.astar.run()
+        return self.astar.run()
 
 
 class Game:
@@ -396,14 +406,41 @@ class Game:
         self.rows = rows
         self.diagonals = diagonals
         self.heuristics = heuristics
+        self.total_time = 0
 
+        self.astar = None
         self.start = None
         self.end = None
         self.running = True
         self.game_grid = GameGrid(rows, window_size, window)
 
+    def draw_info(self, diagonals, heuristic, total_time):
+        info_text = f"Diagonals: {diagonals}, Heuristics: {str.capitalize(heuristic)}, Execution time: {total_time:.3f}s"
+        font = pygame.font.Font(
+            pygame.font.get_default_font(),
+            ((self.window_size * 2) - 10) // len(info_text),
+        )
+        text_surface = font.render(info_text, True, Colors.BLACK)
+        self.window.blit(text_surface, (10, 10))
+        pygame.display.update()
+
+    def update_info(self):
+        if self.game_grid.draw_info:
+            self.game_grid.set_draw_info(
+                self.draw_info,
+                diagonals=self.diagonals,
+                heuristic=self.heuristics,
+                total_time=self.total_time,
+            )
+
     def setup(self):
         self.game_grid.make_cell_grid()
+        self.game_grid.set_draw_info(
+            self.draw_info,
+            diagonals=self.diagonals,
+            heuristic=self.heuristics,
+            total_time=self.total_time,
+        )
 
     def run(self):
         self.setup()
@@ -437,7 +474,7 @@ class Game:
                 # start A*
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_SPACE and self.start and self.end:
-                        astar = AstarVisualization(
+                        self.astar = AstarVisualization(
                             self.game_grid,
                             self.start,
                             self.end,
@@ -446,9 +483,10 @@ class Game:
                         )
                         self.game_grid.reset(clear_user_input=False)
                         time_before = time.time()
-                        astar.run()
-                        total_time = time.time() - time_before
-                        print(f"Execution took {total_time:.3f}s")
+                        done = self.astar.run()
+                        self.total_time = done - time_before
+                        self.update_info()
+                        print(f"Execution took {self.total_time:.3f}s")
                     if event.key == pygame.K_c:  # Reset grid
                         self.start = None
                         self.end = None
@@ -461,10 +499,28 @@ class Game:
                         except IndexError:
                             next_h = hs[0]
                         self.heuristics = next_h
+                        self.update_info()
                         print(f"Heuristic updated to: {self.heuristics}")
                     if event.key == pygame.K_d:  # Toggle diagonals
                         self.diagonals = not self.diagonals
+                        self.update_info()
                         print(f"Diagonals updated to: {self.diagonals}")
+                    if event.key == pygame.K_i:
+                        print("I")
+                        if self.game_grid:
+                            # injects a function (like a callback?) with the parameters already set
+                            # just so the drawing is done in one place only. If I draw it here the info would
+                            # disappear while the algorithm is running... Maybe I just don`t know how to do things
+                            # good ol friend tunnel vison
+                            self.game_grid.set_draw_info(
+                                self.draw_info,
+                                diagonals=self.diagonals,
+                                heuristic=self.heuristics,
+                                total_time=self.total_time,
+                            ) if not self.game_grid.draw_info else self.game_grid.set_draw_info(
+                                None
+                            )
+
         pygame.quit()
 
 
@@ -476,4 +532,5 @@ if __name__ == "__main__":
     DIAG = False
     HEURISTIC = "manhattan"  # "manhattan", "chebyshev", "euclidean"
     new_game = Game(WIN, WIN.get_width(), ROWS, diagonals=DIAG, heuristics=HEURISTIC)
+    pygame.font.init()
     new_game.run()

@@ -471,6 +471,7 @@ class Game:
 if __name__ == "__main__":
     WINDOW_WIDTH = 800
     WIN = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_WIDTH))
+    pygame.display.set_caption("A* Algorithm Playground")
     ROWS = 40
     DIAG = False
     HEURISTIC = "manhattan"  # "manhattan", "chebyshev", "euclidean"

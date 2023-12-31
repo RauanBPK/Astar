@@ -8,16 +8,18 @@ so I decided to implement it now.
 ### Overengineered
 I tried to separate the logic of the algorithm itself from the stuff that was there to help with
 the visualization. It ended up a bit more confusing than what I expected, but it works ok.
-```(Node, Grid, AstarAlgorithm) -> A* stuff```
+
+```(Node, Grid, AstarAlgorithm) -> A* stuff```<br>
 ```(Cell, GameGrid, AstarVisualization) -> Visualization/Drawing stuff```
 
 ### What can it do?
-The user can set (and unset with right click) the start, end and obstacle nodes. *(mouse r and l buttons)*
+- The user can set (and unset with right click) the start, end and obstacle nodes. *(mouse r and l buttons)*
 
-It is also possible to switch among some heuristics methods *(manhattan, chebyshev, euclidean) ("h")*
+- It is also possible to switch among some heuristics methods *(manhattan, chebyshev, euclidean) ("h")*
 
-We can allow and disallow diagonals as well *("d")*
+- We can allow and disallow diagonals as well *("d")*
 
+- Show info (Diagonals, Heuristic and execution time) on the screen *("i")*
 ### Demo
 <img src="assets/astar.gif" width="400" height="400" />
 

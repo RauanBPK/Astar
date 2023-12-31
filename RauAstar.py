@@ -412,7 +412,7 @@ class Game:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
-                    break  # not sure
+                    break
                 if pygame.mouse.get_pressed()[0]:  # left click
                     click_pos = pygame.mouse.get_pos()
                     clicked_cell = self.game_grid.get_clicked_cell(click_pos)
@@ -475,5 +475,5 @@ if __name__ == "__main__":
     ROWS = 40
     DIAG = False
     HEURISTIC = "manhattan"  # "manhattan", "chebyshev", "euclidean"
-    new_game = Game(WIN, WIN.get_width(), ROWS, diagonals=True, heuristics=HEURISTIC)
+    new_game = Game(WIN, WIN.get_width(), ROWS, diagonals=DIAG, heuristics=HEURISTIC)
     new_game.run()

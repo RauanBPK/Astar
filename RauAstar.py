@@ -321,6 +321,7 @@ class AstarAlgorithm:
             if self.draw_callback:
                 self.draw_callback()
                 time.sleep(0.05)  # Just to better see the path forming
+        return len(path)
 
     def run(self):
         self.setup()
@@ -335,8 +336,14 @@ class AstarAlgorithm:
 
             if current_node == self.end:
                 done = time.time()
-                self.reconstruct_path(current_node)
-                return done
+                path_len = self.reconstruct_path(current_node)
+                visited_nodes = 0
+                for row in self.grid.grid:
+                    for node in row:
+                        if node.node_type in [NodeType.CLOSED, NodeType.OPEN, NodeType.PATH]:
+                            visited_nodes += 1
+
+                return done, path_len, visited_nodes
 
             for neighbor in current_node.neighbors:
                 temp_g_score = current_node.g + self.grid.cost_to_neighbor()
@@ -360,7 +367,7 @@ class AstarAlgorithm:
                 current_node.change_type(NodeType.CLOSED)
 
         done = time.time()
-        return done
+        return done, None, None
 
 
 class AstarVisualization:
@@ -407,6 +414,8 @@ class Game:
         self.diagonals = diagonals
         self.heuristics = heuristics
         self.total_time = 0
+        self.path_len = 0
+        self.total_visited = 0
 
         self.astar = None
         self.start = None
@@ -414,14 +423,17 @@ class Game:
         self.running = True
         self.game_grid = GameGrid(rows, window_size, window)
 
-    def draw_info(self, diagonals, heuristic, total_time):
+    def draw_info(self, diagonals, heuristic, total_time, path_len, total_visited):
         info_text = f"Diagonals: {diagonals}, Heuristics: {str.capitalize(heuristic)}, Execution time: {total_time:.3f}s"
+        info_text2 = f"Path Length: {path_len}, Total Visited: {total_visited}"
         font = pygame.font.Font(
             pygame.font.get_default_font(),
             ((self.window_size * 2) - 10) // len(info_text),
         )
         text_surface = font.render(info_text, True, Colors.BLACK)
+        text_surface2 = font.render(info_text2, True, Colors.BLACK)
         self.window.blit(text_surface, (10, 10))
+        self.window.blit(text_surface2, (10, 10 + self.window_size/20))
         pygame.display.update()
 
     def update_info(self):
@@ -431,6 +443,8 @@ class Game:
                 diagonals=self.diagonals,
                 heuristic=self.heuristics,
                 total_time=self.total_time,
+                path_len=self.path_len,
+                total_visited=self.total_visited,
             )
 
     def setup(self):
@@ -440,6 +454,8 @@ class Game:
             diagonals=self.diagonals,
             heuristic=self.heuristics,
             total_time=self.total_time,
+            path_len=self.path_len,
+            total_visited=self.total_visited,
         )
 
     def run(self):
@@ -483,8 +499,10 @@ class Game:
                         )
                         self.game_grid.reset(clear_user_input=False)
                         time_before = time.time()
-                        done = self.astar.run()
+                        done, path_len, total_visited = self.astar.run()
                         self.total_time = done - time_before
+                        self.path_len = path_len
+                        self.total_visited = total_visited
                         self.update_info()
                         print(f"Execution took {self.total_time:.3f}s")
                     if event.key == pygame.K_c:  # Reset grid
@@ -516,6 +534,8 @@ class Game:
                                 diagonals=self.diagonals,
                                 heuristic=self.heuristics,
                                 total_time=self.total_time,
+                                path_len=self.path_len,
+                                total_visited=self.total_visited
                             ) if not self.game_grid.draw_info else self.game_grid.set_draw_info(
                                 None
                             )
